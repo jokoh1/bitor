@@ -1,0 +1,194 @@
+---
+- name: Deploy Terraform
+  hosts: localhost
+  gather_facts: true
+  connection: local
+{% if debug | default(false) %}
+  no_log: false
+{% endif %}
+{% if not debug | default(false) %}
+  no_log: true
+{% endif %}
+  vars: 
+    deploy: true
+    ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ControlMaster=auto -o ControlPersist=60s -o IdentitiesOnly=yes'
+    ansible_ssh_extra_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o IdentitiesOnly=yes'
+    ansible_ssh_retries: 10
+    ansible_ssh_timeout: 30
+  roles:
+    - { role: terraform }
+  tasks:
+    - name: Set start time
+      set_fact:
+        start_time: "{% raw %}{{ ansible_date_time.iso8601[:19] }}{% endraw %}"
+
+    - name: Get VM IP address from inventory
+      shell: "grep 'ansible_host=' inventory/inventory | sed 's/.*ansible_host=\\([^ ]*\\).*/\\1/'"
+      register: vm_ip_address
+
+    - name: Update scan start time
+      uri:
+        url: "http://localhost:8090/api/scan/update-vm-times"
+        method: POST
+        headers:
+          Content-Type: "application/json"
+          Authorization: "Bearer {% raw %}{{ api_key }}{% endraw %}"
+        body: |
+          {
+            "scan_id": "{% raw %}{{ scan_id }}{% endraw %}",
+            "start_time": "{% raw %}{{ start_time }}{% endraw %}"
+          }
+        body_format: json
+        status_code: 200
+
+    - name: Update scan with IP address
+      uri:
+        url: "http://localhost:8090/api/scan/update-ip"
+        method: POST
+        headers:
+          Content-Type: "application/json"
+          Authorization: "Bearer {% raw %}{{ api_key }}{% endraw %}"
+        body: |
+          {
+            "scan_id": "{% raw %}{{ scan_id }}{% endraw %}",
+            "ip_address": "{% raw %}{{ vm_ip_address.stdout }}{% endraw %}"
+          }
+        body_format: json
+        status_code: 200
+
+- name: Refresh Inventory
+  hosts: localhost
+  gather_facts: false
+  connection: local
+  tasks:
+    - meta: refresh_inventory
+    - name: Wait for system to become reachable again
+      wait_for_connection:
+        delay: 10
+        timeout: 300
+
+- hosts: orbit
+  gather_facts: no
+  vars:
+    ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o IdentitiesOnly=yes'
+    ansible_ssh_extra_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o IdentitiesOnly=yes'
+  tasks:
+    - name: Check SSH
+      wait_for:
+        host: "{% raw %}{{ ansible_host }}{% endraw %}"
+        port: 22
+        delay: 5
+        timeout: 60
+      delegate_to: localhost
+      vars:
+        ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o IdentitiesOnly=yes'
+        ansible_ssh_extra_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o IdentitiesOnly=yes'
+
+    - name: Wait for the system to finish booting
+      command: ssh -o BatchMode=yes -o StrictHostKeyChecking=no  -o IdentitiesOnly=yes -o UserKnownHostsFile=/dev/null "ansible@{% raw %}{{ ansible_host }}{% endraw %}" -i {% raw %}{{ ansible_ssh_private_key_file_deploy }}{% endraw %} echo System has booted.
+      register: result
+      until: result is succeeded
+      retries: 30
+      delay: 10
+      ignore_errors: yes
+      delegate_to: localhost
+
+    - name: Check if /tmp/cloud-init-done exists
+      stat:
+        path: /tmp/cloud-init-done
+      register: cloud_init_done
+
+    - name: Wait for /tmp/cloud-init-done to exist
+      wait_for:
+        path: /tmp/cloud-init-done
+        state: present
+        delay: 5
+        timeout: 900
+      when: not cloud_init_done.stat.exists
+      
+- name: SSH & A
+  gather_facts: yes
+  hosts: orbit
+  connection: ssh
+  become: true
+{% if debug | default(false) %}
+  no_log: false
+{% endif %}
+{% if not debug | default(false) %}
+  no_log: true
+{% endif %}
+  vars: 
+    deploy: true
+    ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o IdentitiesOnly=yes -o UserKnownHostsFile=/dev/null -o ControlMaster=auto -o ControlPersist=60s'
+    ansible_ssh_extra_args: '-o StrictHostKeyChecking=no -o IdentitiesOnly=yes -o UserKnownHostsFile=/dev/null'
+    ansible_ssh_retries: 10
+    ansible_ssh_timeout: 30
+  tasks:
+    - name: Apt for sure
+      apt: update_cache=yes
+      register: apt_status
+      until: apt_status is success
+      delay: 10
+      retries: 10
+
+- name: Setup Reverse SSH Tunnel
+  hosts: orbit
+  gather_facts: no
+  tasks:
+    - name: Establish reverse SSH tunnel
+      command: 'ssh -f -N -o StrictHostKeyChecking=no -o IdentitiesOnly=yes -o UserKnownHostsFile=/dev/null -R 8090:localhost:8090 ansible@{% raw %}{{ ansible_host }}{% endraw %} -i {% raw %}{{ ansible_ssh_private_key_file_deploy }}{% endraw %}'
+      delegate_to: localhost
+
+- name: Upload Payload
+  gather_facts: True
+  hosts: orbit
+  connection: ssh
+  become: true
+{% if debug | default(false) %}
+  no_log: false
+{% endif %}
+{% if not debug | default(false) %}
+  no_log: true
+{% endif %}
+  vars:
+    ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o IdentitiesOnly=yes -o UserKnownHostsFile=/dev/null'
+  tasks:
+    - name: Upload Ansible Payload
+      ansible.builtin.copy:
+        src: {{ nuclei_package_folder_name }}
+        dest: /tmp
+        directory_mode: true
+        mode: '0700'
+        owner: ansible
+    - name: Run ansible and don't wait for it to complete
+      shell: |
+        script -q -f -c "ansible-playbook /tmp/{{ nuclei_package_folder_name }}/run.yml" /tmp/{{ nuclei_package_folder_name }}-logs.txt &
+      async: 45
+      poll: 0
+
+- name: Run Time
+  hosts: localhost
+  gather_facts: true
+  connection: local
+  tasks:
+  - name: Send scan status update
+    uri:
+      url: "http://localhost:8090/api/scan/update-status"
+      method: POST
+      headers:
+        Content-Type: "application/json"
+        Authorization: "Bearer {% raw %}{{ api_key }}{% endraw %}"
+      body: |
+        {
+          "scan_id": "{% raw %}{{ scan_id }}{% endraw %}",
+          "status": "Running"
+        }
+      body_format: json
+      status_code: 200
+  - name: force update of current timestamp
+    setup: filter='ansible_date_time'
+  - name: Get runtime
+    set_fact:
+      runtime: "{% raw %}{{ ((ansible_date_time.iso8601[:19] | to_datetime('%Y-%m-%dT%H:%M:%S')) - (start_time | to_datetime('%Y-%m-%dT%H:%M:%S'))) }}{% endraw %}"
+  - debug:
+      msg: "Playbook Runtime {% raw %}{{ runtime }}{% endraw %}"

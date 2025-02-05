@@ -1,0 +1,51 @@
+- name: Create Package Folder
+  file:
+    path: '{{ item }}'
+    state: directory
+  with_items:
+  - '{{ nuclei_scan_folder_location }}/{{ nuclei_package_folder_name }}'
+
+- name: Copy Ansible Configuration File
+  template:
+    src: ansible.cfg.j2
+    dest: '{{ nuclei_scan_folder_location}}/{{ nuclei_package_folder_name }}/ansible.cfg'
+
+- name: Load URLs from JSON file
+  set_fact:
+    urls: "{{ lookup('file', '{{ nuclei_attached_targets_file }}') | from_json }}"
+
+- name: Generate nuclei hosts
+  template:
+    src: hosts.j2
+    dest: '{{ nuclei_scan_folder_location }}/{{ nuclei_package_folder_name }}/hosts'
+
+- name: Copy nuclei config
+  copy:
+    src: '{{ nuclei_profile_file }}'
+    dest: '{{ nuclei_scan_folder_location }}/{{ nuclei_package_folder_name }}/config.yml'
+
+- name: Generate ansible Playbook Vars
+  template: 
+    src: vars.yml.j2
+    dest: '{{ nuclei_scan_folder_location }}/{{ nuclei_package_folder_name }}/vars.yml'
+
+- name: Generate ansible Playbook
+  template: 
+    src: run.yml.j2
+    dest: '{{ nuclei_scan_folder_location }}/{{ nuclei_package_folder_name }}/run.yml'
+
+- name: Generate Playbook Blocks
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+  loop: "{{ nuclei_blocks_to_generate }}"
+
+- name: Generate Stats Template
+  template: 
+    src: stats.json.j2
+    dest: '{{ nuclei_scan_folder_location }}/{{ nuclei_package_folder_name }}/stats.json.j2'
+
+- name: Generate Rescue Template
+  template:
+    src: rescue.yml.j2
+    dest: '{{ nuclei_scan_folder_location }}/{{ nuclei_package_folder_name }}/rescue.yml'

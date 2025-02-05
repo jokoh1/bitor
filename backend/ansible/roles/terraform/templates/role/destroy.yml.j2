@@ -1,0 +1,14 @@
+---
+- name: "{% raw %}{{ name }}{% endraw %} Terraform"
+  community.general.terraform:
+    project_path: '{{ terraform_path }}'
+    state: "{% raw %}{{ state }}{% endraw %}"
+    backend_config:
+      region: "{{ s3.state.region }}"
+      bucket: "{{ s3.state.bucket }}"
+      key: "{{ s3.state.path | trim('/') }}/{{ scan_id }}/terraform.tfstate"
+      access_key: "{% raw %}{{ s3.state.access_key }}{% endraw %}"
+      secret_key: "{% raw %}{{ s3.state.secret_key }}{% endraw %}"
+    force_init: true
+    variables:
+      do_token: "{% raw %}{{ vm.provider_key }}{% endraw %}"

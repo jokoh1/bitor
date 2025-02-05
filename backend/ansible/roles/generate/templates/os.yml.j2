@@ -1,0 +1,9 @@
+orbit:
+  hosts:
+    {{ scan_id }}:
+      ansible_python_interpreter: /usr/bin/python3
+      ansible_ssh_private_key_file: "../ansible/keys/key"
+      ansible_ssh_private_key_file_deploy: "../../keys/key"
+      ansible_ssh_public_key_file: "../ansible/keys/key.pub"
+      ansible_ssh_public_key_file_deploy: "../../keys/key.pub"
+      ansible_ssh_user: 'ansible'

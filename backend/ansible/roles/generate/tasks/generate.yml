@@ -1,0 +1,18 @@
+---
+- name: Generating deploy.yml
+  template:
+    mode: '0755'
+    src: templates/deploy.yml.j2
+    dest: "{{ generate_scan_folder }}/deploy.yml"
+
+- name: Generating destroy.yml
+  template:
+    mode: '0755'
+    src: templates/destroy.yml.j2
+    dest: "{{ generate_scan_folder }}/destroy.yml"
+
+- name: Generating ansible.cfg
+  template:
+    mode: '0755'
+    src: templates/ansible.cfg.j2
+    dest: "{{ generate_scan_folder }}/ansible.cfg"

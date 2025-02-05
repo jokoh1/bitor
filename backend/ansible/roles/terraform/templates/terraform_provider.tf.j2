@@ -1,0 +1,24 @@
+terraform {
+  required_version = ">= 0.12.0"
+  required_providers {
+    digitalocean = {
+      source = "digitalocean/digitalocean"
+    }
+    local = ">= 1.2"
+  }
+}
+provider "digitalocean" {
+  token = var.do_token
+}
+terraform {
+  backend "s3" {
+    skip_requesting_account_id = true
+    skip_credentials_validation = true
+    skip_metadata_api_check     = true
+    skip_s3_checksum           = true
+    use_path_style             = {{ s3.state.use_path_style | lower }}
+    endpoints = {
+      s3 = "{{ s3.state.endpoint }}"
+    }
+  }
+}

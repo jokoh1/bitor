@@ -1,0 +1,20 @@
+---
+- name: Generating Terraform Variables
+  template:
+    src: templates/terraform_variables.tf.j2
+    dest: "{{ terraform_project_path }}/variables.tf"
+
+- name: Generating Terraform Providers
+  template:
+    src: templates/terraform_provider.tf.j2
+    dest: "{{ terraform_project_path }}/provider.tf"
+
+- name: Generating Terraform Outputs
+  template:
+    src: templates/terraform_outputs.tf.j2
+    dest: "{{ terraform_project_path }}/outputs.tf"
+
+- name: Generating Terraform Inventory Template
+  template:
+    src: templates/inventory.tmpl.j2
+    dest: "{{ terraform_project_path }}/inventory.tmpl"

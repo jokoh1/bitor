@@ -1,0 +1,3 @@
+---
+generate_scan_folder: 'scans/{{ scan_id }}'
+nuclei_package_folder_name: 'ansible-package-nuclei-{{ scan_id }}'

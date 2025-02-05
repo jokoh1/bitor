@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  orbit:
+    image: ghcr.io/orbitscanner/orbit:latest
+    restart: unless-stopped
+    environment:
+      - API_ENCRYPTION_KEY=12345678901234567890123456789012
+      - DEBUG=1  # Enable debug output
+    volumes:
+      - ./docker/data:/app/pb_data
+      - ./docker/nuclei-templates:/app/nuclei-templates
+    ports:
+      - "8090:8090"
+    # Add healthcheck to monitor container status
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8090/_/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    # Keep container logs
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

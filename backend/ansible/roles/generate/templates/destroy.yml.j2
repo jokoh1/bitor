@@ -1,0 +1,34 @@
+---
+- name: Deploy Terraform
+  hosts: localhost
+  gather_facts: true
+  connection: local
+  no_log: true
+  tasks:
+  - name: Start
+    set_fact:
+      start_time: "{% raw %}{{ ansible_date_time.iso8601[:19] }}{% endraw %}"
+  vars: 
+    deploy: false
+  roles:
+    - { role: terraform }
+
+- name: Run Time
+  hosts: localhost
+  gather_facts: true
+  connection: local
+  tasks:
+  - name: force update of current timestamp
+    setup: filter='ansible_date_time'
+  - name: Get runtime
+    set_fact:
+      runtime: "{% raw %}{{ ((ansible_date_time.iso8601[:19] | to_datetime('%Y-%m-%dT%H:%M:%S')) - (start_time | to_datetime('%Y-%m-%dT%H:%M:%S'))) }}{% endraw %}"
+  - debug:
+      msg: "Playbook Runtime {% raw %}{{ runtime }}{% endraw %}"
+
+- name: Destroy Terraform
+  hosts: localhost
+  gather_facts: false
+  connection: local
+  roles:
+    - { role: terraform, deploy: false }

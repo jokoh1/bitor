@@ -1,0 +1,48 @@
+{% for tag in vm.tags.split(',') %}
+resource "digitalocean_tag" "{{ tag | trim | lower | replace(' ', '_') }}" {
+  name = "{{ tag | trim }}"
+}
+{% endfor %}
+
+resource "tls_private_key" "ssh_key" {
+  algorithm = "RSA"
+  rsa_bits  = 4096
+}
+
+resource "digitalocean_ssh_key" "terraform_ssh_key" {
+  name       = "orbit-terraform-{{ scan_id }}"
+  public_key = tls_private_key.ssh_key.public_key_openssh
+}
+
+resource "digitalocean_droplet" "vm" {
+  image = "{{ do_image | default(vm_default_do_image) }}"
+  name = "{{ 'vm-' + scan_id }}"
+  region = "{{ vm.do_region|default(vm_default_do_region) }}"
+  size = "{{ vm.do_size|default(vm_default_do_size) }}"
+  tags = [{% for tag in vm.tags.split(',') %}digitalocean_tag.{{ tag | trim | lower | replace(' ', '_') }}.id,{% endfor %}]
+  user_data = "${file("cloud-init-do.yaml")}"
+  ssh_keys = [
+    digitalocean_ssh_key.terraform_ssh_key.fingerprint
+  ]
+}
+
+resource "digitalocean_firewall" "firewall" {
+  name = "{{ 'firewall-' + scan_id }}"
+
+  droplet_ids = [digitalocean_droplet.vm.id]
+  inbound_rule {
+    protocol         = "tcp"
+    port_range       = "22"
+    source_addresses = ["0.0.0.0/0"]
+  }
+  outbound_rule {
+    protocol         = "udp"
+    port_range       = "1-65535"
+    destination_addresses = ["0.0.0.0/0"]
+  }
+  outbound_rule {
+    protocol         = "tcp"
+    port_range       = "1-65535"
+    destination_addresses = ["0.0.0.0/0"]
+  }
+}

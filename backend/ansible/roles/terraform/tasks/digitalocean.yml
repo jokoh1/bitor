@@ -1,0 +1,24 @@
+---
+- name: Generating Terraform Digital Ocean Droplet
+  template:
+    src: templates/digitalocean/terraform_digitalocean_do.tf.j2
+    dest: "{{ terraform_project_path }}/digitalocean_do.tf"
+  when: vm.provider_service == 'DigitalOcean'
+
+- name: Generating Terraform Digital Ocean Project
+  template:
+    src: templates/digitalocean/terraform_digitalocean_project.tf.j2
+    dest: "{{ terraform_project_path }}/digitalocean_project.tf"
+  when: vm.provider_service == 'DigitalOcean' and vm.do_project is defined
+
+- name: Generating Terraform Digital Ocean DNS
+  template:
+    src: templates/digitalocean/terraform_digitalocean_dns.tf.j2
+    dest: "{{ terraform_project_path }}/digitalocean_dns.tf"
+  when: vm.provider_service == 'DigitalOcean' and vm.dns_domain is defined
+
+- name: Generating Terraform CloudInit
+  template:
+    src: templates/digitalocean/cloud-init-do.yaml.j2
+    dest: "{{ terraform_project_path }}/cloud-init-do.yaml"
+  when: vm.provider_service == 'DigitalOcean'

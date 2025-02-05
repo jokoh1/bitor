@@ -1,0 +1,18 @@
+{
+  "nuclei_stats": {
+    "date": "{% raw %}{{ ansible_date_time.date }}{% endraw %}",
+    "nuclei_version": "{% raw %}{{ nuclei_version_output.stdout.strip() }}{% endraw %}",
+    "total_targets": "{% raw %}{{ total_targets_output.stdout.strip() }}{% endraw %}",
+    "total_skipped": "{% raw %}{{ total_skipped_output.stdout.strip() }}{% endraw %}",
+    "high_findings": "{% raw %}{{ total_highs_output.stdout.strip() }}{% endraw %}",
+    "medium_findings": "{% raw %}{{ total_mediums_output.stdout.strip() }}{% endraw %}",
+    "low_findings": "{% raw %}{{ total_lows_output.stdout.strip() }}{% endraw %}",
+    "info_findings": "{% raw %}{{ total_info_output.stdout.strip() }}{% endraw %}",
+    "unknown_findings": "{% raw %}{{ total_unknowns_output.stdout.strip() }}{% endraw %}",
+    "scan_time": "{% raw %}{{ human_readable_time }}{% endraw %}",
+    "cpu_count": "{% raw %}{{ ansible_processor_vcpus }}{% endraw %}",
+    "ram_size": "{% raw %}{{ ansible_memtotal_mb }}{% endraw %}",
+    "swap_size": "{% raw %}{{ ansible_swaptotal_mb }}{% endraw %}",
+    "public_ip": "{% raw %}{{ public_ip }}{% endraw %}"
+  }
+}

@@ -1,0 +1,104 @@
+- name: Create temporary directories
+  file:
+    path: "{% raw %}{{ item }}{% endraw %}"
+    state: directory
+    mode: 0755
+  with_items:
+    - "{% raw %}{{ nuclei_compress_full_dir }}{% endraw %}"
+    - "{% raw %}{{ nuclei_compress_small_dir }}{% endraw %}"
+
+- name: Copy Full Files to temporary directory with desired structure
+  command: >
+    rclone copy "{% raw %}{{ item }}{% endraw %}" "{% raw %}{{ nuclei_compress_full_dir }}/{{ item | basename if item is directory else '' }}{% endraw %}"
+  with_items: "{% raw %}{{ nuclei_files_to_compress_full }}{% endraw %}"
+  ignore_errors: yes
+
+- name: Copy Small Files to temporary directory with desired structure
+  command: >
+    rclone copy "{% raw %}{{ item }}{% endraw %}" "{% raw %}{{ nuclei_compress_small_dir }}/{{ item | basename if item is directory else '' }}{% endraw %}"
+  with_items: "{% raw %}{{ nuclei_files_to_compress_small }}{% endraw %}"
+  ignore_errors: yes
+
+- name: Compress Full Results
+  shell: |
+    cd {% raw %}{{ nuclei_compress_full_dir }}{% endraw %} && tar -I zstd -cvf "{% raw %}{{ nuclei_results_zip_full }}{% endraw %}" *
+  args:
+    creates: "{% raw %}{{ nuclei_results_zip_full }}{% endraw %}"
+
+- name: Compress Small Results
+  shell: |
+    cd {% raw %}{{ nuclei_compress_small_dir }}{% endraw %} && zip -r "{% raw %}{{ nuclei_results_zip_small }}{% endraw %}" *
+  args:
+    creates: "{% raw %}{{ nuclei_results_zip_small }}{% endraw %}"
+
+- name: Copy results zip Small
+  copy:
+    src: "{% raw %}{{ nuclei_results_zip_small }}{% endraw %}"
+    dest: "{% raw %}{{ nuclei_results_zip_latest }}{% endraw %}"
+
+- name: Check if full ZIP exists
+  stat:
+    path: "{% raw %}{{ nuclei_results_zip_full }}{% endraw %}"
+  register: full_zip_check
+
+- name: Check if small ZIP exists
+  stat:
+    path: "{% raw %}{{ nuclei_results_zip_small }}{% endraw %}"
+  register: small_zip_check
+
+- name: Upload Full ZIP file to DigitalOcean Spaces S3 bucket
+  shell: >
+    AWS_ACCESS_KEY_ID="{% raw %}{{ s3_scan_access_key }}{% endraw %}"
+    AWS_SECRET_ACCESS_KEY="{% raw %}{{ s3_scan_secret_key }}{% endraw %}"
+    aws s3 cp "{% raw %}{{ nuclei_results_zip_full | realpath }}{% endraw %}"
+    "s3://{% raw %}{{ s3_scan_bucket_name }}/{{ s3_scan_path }}/{{ scan_id }}/nuclei/{{ nuclei_results_zip_full_name }}{% endraw %}"
+    --endpoint-url "{% raw %}{{ s3_scan_bucket_endpoint }}{% endraw %}"
+  register: full_upload_result
+  when: full_zip_check.stat.exists
+
+- name: Upload Small ZIP file to DigitalOcean Spaces S3 bucket
+  shell: >
+    AWS_ACCESS_KEY_ID="{% raw %}{{ s3_scan_access_key }}{% endraw %}"
+    AWS_SECRET_ACCESS_KEY="{% raw %}{{ s3_scan_secret_key }}{% endraw %}"
+    aws s3 cp "{% raw %}{{ nuclei_results_zip_small | realpath }}{% endraw %}"
+    "s3://{% raw %}{{ s3_scan_bucket_name }}/{{ s3_scan_path }}/{{ scan_id }}/nuclei/{{ nuclei_results_zip_small_name }}{% endraw %}"
+    --endpoint-url "{% raw %}{{ s3_scan_bucket_endpoint }}{% endraw %}"
+  register: small_upload_result
+  when: small_zip_check.stat.exists
+
+- name: Send POST request to update archives
+  uri:
+    url: "{% raw %}{{ orbit_api_url }}{% endraw %}/api/scan/update-archives"
+    method: POST
+    headers:
+      Content-Type: "application/json"
+      Authorization: "Bearer {% raw %}{{ scan_api_key }}{% endraw %}"
+    body: |
+      {
+        "client_id": "{% raw %}{{ client_id }}{% endraw %}",
+        "s3_provider_id": "{% raw %}{{ s3_provider_id }}{% endraw %}",
+        "scan_id": "{% raw %}{{ scan_id }}{% endraw %}",
+        "s3_full_path": "{% raw %}{{ s3_scan_path }}/{{ scan_id }}/nuclei/{{ nuclei_results_zip_full_name }}{% endraw %}",
+        "s3_small_path": "{% raw %}{{ s3_scan_path }}/{{ scan_id }}/nuclei/{{ nuclei_results_zip_small_name }}{% endraw %}"
+      }
+    body_format: json
+
+- name: Send scan status update
+  uri:
+    url: "{% raw %}{{ orbit_api_url }}{% endraw %}/api/scan/update-status"
+    method: POST
+    headers:
+      Content-Type: "application/json"
+      Authorization: "Bearer {% raw %}{{ scan_api_key }}{% endraw %}"
+    body: |
+      {
+        "scan_id": "{% raw %}{{ scan_id }}{% endraw %}",
+        "status": "Finished"
+      }
+    body_format: json
+    status_code: 200
+
+- name: Check if results file exists
+  stat:
+    path: "{% raw %}{{ nuclei_output_json }}{% endraw %}"
+  register: results_file

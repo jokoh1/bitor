@@ -1,0 +1,9 @@
+---
+- name: Create Folders
+  file:
+    path: '{{ item }}'
+    state: directory
+  with_items:
+  - '{{ generate_scan_folder }}'
+  - '{{ generate_scan_folder }}/inventory'
+  - '{{ generate_scan_folder }}/terraform'

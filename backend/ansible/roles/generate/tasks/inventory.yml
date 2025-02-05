@@ -1,0 +1,6 @@
+---
+- name: Generating os inventory
+  template:
+    mode: '0755'
+    src: templates/os.yml.j2
+    dest: "{{ generate_scan_folder }}/inventory/os.yml"

@@ -1,0 +1,7 @@
+resource "digitalocean_record" "dns" {
+  domain = "{{ automation_domain }}"
+  type   = "A"
+  name   = "{{ scan_id }}"
+  value  = digitalocean_droplet.vm.ipv4_address
+  depends_on = [digitalocean_droplet.vm]
+}

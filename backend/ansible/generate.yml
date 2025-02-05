@@ -1,0 +1,18 @@
+- name: Generate Playbooks & Terrafrom
+  hosts: localhost
+  gather_facts: true
+  connection: local
+  no_log: false
+  vars_files:
+    - './defaults.yml'
+  roles:
+    - { role: generate }
+    - { role: terraform }
+
+- name: Generate Payload
+  hosts: localhost
+  gather_facts: true
+  connection: local
+  no_log: false
+  roles:
+    - { role: nuclei }

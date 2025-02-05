@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  orbit:
+    image: ghcr.io/orbitscanner/orbit:latest
+    restart: unless-stopped
+    environment:
+      - API_ENCRYPTION_KEY=${API_ENCRYPTION_KEY:?API encryption key is required}
+    volumes:
+      - ./data:/app/pb_data
+      - ./nuclei-templates:/app/nuclei-templates
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.orbit.rule=Host(`${DOMAIN:-localhost}`)"
+      - "traefik.http.routers.orbit.entrypoints=websecure"
+      - "traefik.http.routers.orbit.tls=true"
+      - "traefik.http.routers.orbit.tls.certresolver=letsencrypt"
+      - "traefik.http.services.orbit.loadbalancer.server.port=8090"
+    networks:
+      - orbit-net
+
+  traefik:
+    image: traefik:v2.10
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/acme.json:/acme.json
+      - ./traefik/traefik.yml:/traefik.yml:ro
+    networks:
+      - orbit-net
+    depends_on:
+      - orbit
+
+networks:
+  orbit-net:
+    driver: bridge 

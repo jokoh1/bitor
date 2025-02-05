@@ -1,0 +1,11 @@
+## The inventory file
+resource "local_file" "Inventory" {
+  content = templatefile("inventory.tmpl",
+  {
+    "vm-dns" = digitalocean_droplet.vm.name,
+    "vm-ip" = digitalocean_droplet.vm.ipv4_address,
+    "vm-id" = digitalocean_droplet.vm.id,
+  }
+  )
+  filename = "../inventory/inventory"
+}

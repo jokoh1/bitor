@@ -1,0 +1,12 @@
+---
+- include_tasks: deploy.yml
+  vars:
+    state: "present"
+    name: "Deploy"
+  when: deploy
+
+- include_tasks: destroy.yml
+  vars:
+    state: "absent"
+    name: "Destroy"
+  when: not deploy

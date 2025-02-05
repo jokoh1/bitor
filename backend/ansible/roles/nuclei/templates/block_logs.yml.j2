@@ -1,0 +1,17 @@
+- name: Read the ansible log file and encode in base64
+  slurp:
+    src: "{% raw %}{{ ansible_log_file }}{% endraw %}"
+  register: ansible_log_content
+
+- name: Update scan logs
+  uri:
+    url: "{% raw %}{{ orbit_api_url }}/api/scan/update-logs{% endraw %}"
+    method: POST
+    headers:
+      Content-Type: "application/json"
+      Authorization: "Bearer {% raw %}{{ scan_api_key }}{% endraw %}"
+    body:
+      scan_id: "{% raw %}{{ scan_id }}{% endraw %}"
+      logs_b64: "{% raw %}{{ ansible_log_content.content }}{% endraw %}"
+    body_format: json
+    status_code: 200

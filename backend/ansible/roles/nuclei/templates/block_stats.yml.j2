@@ -1,0 +1,128 @@
+- name: Calculate duration
+  set_fact:
+    scan_time_seconds: "{% raw %}{{ (scan_end_epoch | int) - (scan_start_epoch | int) }}{% endraw %}"
+    
+- name: Extract skipped hosts from log file
+  shell: "grep 'Skipped' {% raw %}{{ nuclei_log_file }}{% endraw %} || true"
+  register: skipped_hosts
+
+- name: Create empty skipped hosts file if there is no skipped hosts
+  copy:
+    content: "[]"
+    dest: "{% raw %}{{ nuclei_skipped_hosts }}{% endraw %}"
+  when: skipped_hosts.stdout is defined and skipped_hosts.stdout == ""
+
+- name: Save skipped hosts to a file
+  copy:
+    content: "{% raw %}{{ skipped_hosts.stdout }}{% endraw %}"
+    dest: "{% raw %}{{ nuclei_skipped_hosts }}{% endraw %}"
+  when: skipped_hosts.stdout is defined and skipped_hosts.stdout != ""
+
+- name: Read skipped hosts file
+  slurp:
+    src: "{% raw %}{{ nuclei_skipped_hosts }}{% endraw %}"
+  register: skipped_hosts_content
+  when: skipped_hosts.stdout is defined and skipped_hosts.stdout != ""
+
+- name: Update skipped hosts
+  uri:
+    url: "{% raw %}{{ orbit_api_url }}{% endraw %}/api/scan/update-skipped-hosts"
+    method: POST
+    headers:
+      Content-Type: "application/json"
+      Authorization: "Bearer {% raw %}{{ scan_api_key }}{% endraw %}"
+    body: |
+      {
+        "scan_id": "{% raw %}{{ scan_id }}{% endraw %}",
+        "logs_b64": "{% raw %}{{ skipped_hosts_content.content }}{% endraw %}"
+      }
+    body_format: json
+    status_code: 200
+  when: skipped_hosts_content.content is defined and skipped_hosts_content.content != ""
+
+- name: Get Nuclei version
+  shell: "grep 'Current nuclei version:' {% raw %}{{ nuclei_log_file }}{% endraw %} | awk -F': ' '{print $2}' | sed 's/ (.*)//'"
+  register: nuclei_version_output
+  failed_when: false
+  changed_when: false
+
+- name: Get total targets
+  shell: "grep 'Targets loaded for current scan:' {% raw %}{{ nuclei_log_file }}{% endraw %} | awk -F': ' '{print $2}'"
+  register: total_targets_output
+  failed_when: false
+  changed_when: false
+
+- name: Get total skipped
+  shell: "grep -c 'Skipped' {% raw %}{{ nuclei_log_file }}{% endraw %}"
+  register: total_skipped_output
+  failed_when: false
+
+- name: Get skipped hosts
+  shell: "grep 'Skipped' {% raw %}{{ nuclei_log_file }}{% endraw %}"
+  register: skipped_hosts_output
+  failed_when: false
+
+- name: Get high findings
+  shell: "jq '.[] | select(.info.severity==\"high\") | .info.severity' {% raw %}{{ nuclei_output_json }}{% endraw %} | wc -l"
+  register: total_highs_output
+  failed_when: false
+
+- name: Get medium findings
+  shell: "jq '.[] | select(.info.severity==\"medium\") | .info.severity' {% raw %}{{ nuclei_output_json }}{% endraw %} | wc -l"
+  register: total_mediums_output
+  failed_when: false
+
+- name: Get low findings
+  shell: "jq '.[] | select(.info.severity==\"low\") | .info.severity' {% raw %}{{ nuclei_output_json }}{% endraw %} | wc -l"
+  register: total_lows_output
+  failed_when: false
+
+- name: Get info findings
+  shell: "jq '.[] | select(.info.severity==\"info\") | .info.severity' {% raw %}{{ nuclei_output_json }}{% endraw %} | wc -l"
+  register: total_info_output
+  failed_when: false
+
+- name: Get unknown findings
+  shell: "jq '.[] | select(.info.severity==\"unknown\") | .info.severity' {% raw %}{{ nuclei_output_json }}{% endraw %} | wc -l"
+  register: total_unknowns_output
+  failed_when: false
+
+- name: Get public IP
+  uri:
+    url: http://ipinfo.io/ip
+    return_content: yes
+  register: public_ip_response
+  ignore_errors: yes
+
+- name: Set public IP fact
+  set_fact:
+    public_ip: "{% raw %}{{ public_ip_response.content | default('unknown') | trim }}{% endraw %}"
+  ignore_errors: yes
+
+- name: Convert scan_time_seconds to human readable format
+  set_fact:
+    days: "{% raw %}{{ scan_time_seconds | int // 86400 }}{% endraw %}"
+    hours: "{% raw %}{{ (scan_time_seconds | int % 86400) // 3600 }}{% endraw %}"
+    minutes: "{% raw %}{{ (scan_time_seconds | int % 3600) // 60 }}{% endraw %}"
+    remaining_seconds: "{% raw %}{{ scan_time_seconds | int % 60 }}{% endraw %}"
+
+- name: Create human readable time string
+  set_fact:
+    human_readable_time: >-
+      {% raw %}{%- if days | int > 0 -%}
+        {{ days }}d
+      {%- endif -%}
+      {%- if hours | int > 0 -%}
+        {{ hours }}h
+      {%- endif -%}
+      {%- if minutes | int > 0 -%}
+        {{ minutes }}m
+      {%- endif -%}
+      {%- if remaining_seconds | int > 0 -%}
+        {{ remaining_seconds }}s
+      {%- endif -%}{% endraw %}
+
+- name: Generate Stats Template
+  template: 
+    src: stats.json.j2
+    dest: '{% raw %}{{ nuclei_stats_file }}{% endraw %}'

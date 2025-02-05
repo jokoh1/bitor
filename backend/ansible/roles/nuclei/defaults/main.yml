@@ -1,0 +1,19 @@
+nuclei_scan_folder_location: 'scans/{{ scan_id }}'
+nuclei_package_folder_name: 'ansible-package-nuclei-{{ scan_id }}'
+nuclei_notify_alerts: true
+nuclei_attached_targets_file: 'scans/{{ scan_id }}/targets.json'
+nuclei_profile_file: 'scans/{{ scan_id }}/nuclei_profile.yaml'
+
+nuclei_blocks_to_generate:
+  - src: block_cleanup.yml.j2
+    dest: '{{ nuclei_scan_folder_location }}/{{ nuclei_package_folder_name }}/block_cleanup.yml'
+  - src: block_nuclei.yml.j2
+    dest: '{{ nuclei_scan_folder_location }}/{{ nuclei_package_folder_name }}/block_nuclei.yml'
+  - src: block_s3_backup.yml.j2
+    dest: '{{ nuclei_scan_folder_location }}/{{ nuclei_package_folder_name }}/block_s3_backup.yml'
+  - src: block_stats.yml.j2
+    dest: '{{ nuclei_scan_folder_location }}/{{ nuclei_package_folder_name }}/block_stats.yml'
+  - src: block_logs.yml.j2
+    dest: '{{ nuclei_scan_folder_location }}/{{ nuclei_package_folder_name }}/block_logs.yml'
+  - src: block_orbit_database.yml.j2
+    dest: '{{ nuclei_scan_folder_location }}/{{ nuclei_package_folder_name }}/block_orbit_database.yml'

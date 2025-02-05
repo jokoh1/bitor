@@ -1,0 +1,34 @@
+---
+- name: Set VM stop time
+  set_fact:
+    vm_stop_time: "{% raw %}{{ lookup('pipe', 'date -u +%Y-%m-%dT%H:%M:%SZ') }}{% endraw %}"
+
+- name: Update VM stop time
+  uri:
+    url: "{% raw %}{{ orbit_api_url }}{% endraw %}/api/scan/update-vm-times"
+    method: POST
+    headers:
+      Content-Type: "application/json"
+      Authorization: "Bearer {% raw %}{{ scan_api_key }}{% endraw %}"
+    body: |
+      {
+        "scan_id": "{% raw %}{{ scan_id }}{% endraw %}",
+        "start_time": "{% raw %}{{ scan_start_time }}{% endraw %}",
+        "stop_time": "{% raw %}{{ vm_stop_time }}{% endraw %}"
+      }
+    body_format: json
+    status_code: 200
+
+- name: Destory Scan
+  uri:
+    url: "{% raw %}{{ orbit_api_url }}{% endraw %}/api/scan/destroy"
+    method: POST
+    headers:
+      Content-Type: "application/json"
+      Authorization: "Bearer {% raw %}{{ scan_api_key }}{% endraw %}"
+    body: |
+      {
+        "scan_id": "{% raw %}{{ scan_id }}{% endraw %}"
+      }
+    body_format: json
+    status_code: 200

@@ -1,0 +1,25 @@
+- name: Install nuclei
+  hosts: localhost
+  become: true
+  gather_facts: true
+  vars_files:
+    - ./vars.yml
+  vars:
+    debug: false
+  tasks:
+    - block:
+      - import_tasks: block_nuclei.yml
+      - import_tasks: block_stats.yml
+      - import_tasks: block_orbit_database.yml
+      - import_tasks: block_s3_backup.yml
+      - import_tasks: block_logs.yml
+        when: not debug
+      - import_tasks: block_cleanup.yml
+      rescue:
+        - name: Set error time
+          set_fact:
+            error_current_time: "{% raw %}{{ ansible_date_time.date }} {{ ansible_date_time.hour }}:{{ ansible_date_time.minute }}:{{ ansible_date_time.second }}{% endraw %}"
+        - import_tasks: rescue.yml
+        - import_tasks: block_logs.yml
+          when: not debug
+  

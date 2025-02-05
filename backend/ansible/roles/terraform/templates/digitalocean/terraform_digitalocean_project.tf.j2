@@ -1,0 +1,10 @@
+data "digitalocean_project" "orbit" {
+  name = "{{ vm.do_project }}"
+}
+
+resource "digitalocean_project_resources" "{{ vm.do_project }}" {
+  project = data.digitalocean_project.orbit.id
+  resources = [
+    digitalocean_droplet.vm.urn
+  ]
+}

@@ -1,0 +1,42 @@
+---
+- name: Read the ansible log file and encode in base64
+  slurp:
+    src: "{% raw %}{{ ansible_log_file }}{% endraw %}"
+  register: ansible_log_content
+
+- name: Update scan logs
+  uri:
+    url: "{% raw %}{{ orbit_api_url }}{% endraw %}/api/scan/update-logs"
+    method: POST
+    headers:
+      Content-Type: "application/json"
+      Authorization: "Bearer {% raw %}{{ scan_api_key }}{% endraw %}"
+    body: |
+      {
+        "scan_id": "{% raw %}{{ scan_id }}{% endraw %}",
+        "logs_b64": "{% raw %}{{ ansible_log_content.content }}{% endraw %}"
+      }
+    body_format: json
+    status_code: 200
+  ignore_errors: yes
+
+- name: Send scan status update
+  uri:
+    url: "{% raw %}{{ orbit_api_url }}{% endraw %}/api/scan/update-status"
+    method: POST
+    headers:
+      Content-Type: "application/json"
+      Authorization: "Bearer {% raw %}{{ scan_api_key }}{% endraw %}"
+    body: |
+      {
+        "scan_id": "{% raw %}{{ scan_id }}{% endraw %}",
+        "status": "Failed"
+      }
+    body_format: json
+    status_code: 200
+
+- name: Set end time
+  set_fact:
+    scan_end_time: "{% raw %}{{ lookup('pipe', 'date -u +%Y-%m-%dT%H:%M:%S') }}{% endraw %}"
+    scan_end_epoch: "{% raw %}{{ lookup('pipe', 'date -u +%s') }}{% endraw %}"
+  ignore_errors: yes
