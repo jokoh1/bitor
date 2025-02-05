@@ -2,6 +2,15 @@
 
 > ⚠️ **Note**: This software is currently in beta and under heavy development. Features and APIs may change frequently.
 
+[![GitHub release (latest by date)](https://img.shields.io/github/v/release/orbitscanner/orbit)](https://github.com/orbitscanner/orbit/releases)
+[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/orbitscanner/orbit/ci.yml?branch=main)](https://github.com/orbitscanner/orbit/actions)
+[![GitHub stars](https://img.shields.io/github/stars/orbitscanner/orbit)](https://github.com/orbitscanner/orbit/stargazers)
+[![GitHub license](https://img.shields.io/github/license/orbitscanner/orbit)](https://github.com/orbitscanner/orbit/blob/main/LICENSE)
+[![GitHub issues](https://img.shields.io/github/issues/orbitscanner/orbit)](https://github.com/orbitscanner/orbit/issues)
+[![Go Report Card](https://goreportcard.com/badge/github.com/orbitscanner/orbit)](https://goreportcard.com/report/github.com/orbitscanner/orbit)
+[![codecov](https://codecov.io/gh/orbitscanner/orbit/branch/main/graph/badge.svg)](https://codecov.io/gh/orbitscanner/orbit)
+[![Docker Pulls](https://img.shields.io/docker/pulls/orbitscanner/orbit)](https://hub.docker.com/r/orbitscanner/orbit)
+
 Orbit is a powerful platform designed to facilitate large-scale Nuclei scans, enabling teams to efficiently manage and analyze scan results. By integrating modern technologies with a web frontend in SvelteKit and a backend in Go, with Terraform and Ansible for infrastructure and automation, Orbit streamlines the process of running security scans and collaborating on findings.
 
 <div align="center">
