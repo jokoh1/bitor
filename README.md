@@ -50,7 +50,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 <div align="center">
   <a href="https://www.blackhillsinfosec.com/">
-    <img src="assets/bhis-logo.png" alt="Black Hills Information Security" width="300">
+    <img src="assets/BHIS-logo.png" alt="Black Hills Information Security" width="300">
   </a>
   <p>Proudly sponsored by <a href="https://www.blackhillsinfosec.com/">Black Hills Information Security</a></p>
 </div>
