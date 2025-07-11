@@ -15,7 +15,7 @@ RUN go mod download
 # Copy source code
 COPY . .
 
-# Build the application
+# Build the application (CGO disabled for Railway compatibility)
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o bitor main.go
 
 # Final stage
