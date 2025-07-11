@@ -30,6 +30,8 @@ WORKDIR /app
 # Install build dependencies (add build-base for gcc, musl-dev, etc.)
 RUN apk add --no-cache git ca-certificates build-base
 
+# Force cache bust - $(date)
+
 # Copy backend go mod files
 COPY go.mod go.sum ./
 
