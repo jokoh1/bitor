@@ -39,8 +39,8 @@ COPY backend/ ./
 # Copy frontend build output
 COPY --from=frontend-builder /app/build ./pb_public
 
-# Build the application
-RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo -o bitor main.go
+# Build the application (CGO disabled for Railway compatibility)
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o bitor main.go
 
 # Final stage
 FROM alpine:latest
