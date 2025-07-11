@@ -1,0 +1,17 @@
+[build]
+command = "pnpm install && pnpm build"
+output_dir = "build"
+
+[env.production]
+name = "bitor-frontend"
+
+[env.production.build]
+command = "pnpm install && pnpm build"
+output_dir = "build"
+
+[env.preview]
+name = "bitor-frontend-preview"
+
+[env.preview.build]
+command = "pnpm install && pnpm build"
+output_dir = "build" 
