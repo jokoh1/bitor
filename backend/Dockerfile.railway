@@ -1,0 +1,66 @@
+# Multi-stage build for Railway deployment
+# This Dockerfile builds both frontend and backend
+
+# Stage 1: Build frontend
+FROM node:20-alpine AS frontend-builder
+
+WORKDIR /app
+
+# Copy frontend package files
+COPY ../frontend/package*.json ./
+COPY ../frontend/pnpm-lock.yaml ./
+
+# Install pnpm
+RUN npm install -g pnpm
+
+# Install frontend dependencies
+RUN pnpm install --frozen-lockfile
+
+# Copy frontend source code
+COPY ../frontend/ ./
+
+# Build frontend
+RUN pnpm build
+
+# Stage 2: Build backend
+FROM golang:1.22-alpine AS backend-builder
+
+WORKDIR /app
+
+# Install build dependencies
+RUN apk add --no-cache git ca-certificates
+
+# Copy backend go mod files
+COPY go.mod go.sum ./
+
+# Download Go dependencies
+RUN go mod download
+
+# Copy backend source code
+COPY . .
+
+# Copy frontend build output to pb_public
+COPY --from=frontend-builder /app/build ./pb_public
+
+# Build the Go application
+RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo -o bitor main.go
+
+# Stage 3: Final runtime image
+FROM alpine:latest
+
+# Install runtime dependencies
+RUN apk --no-cache add ca-certificates
+
+WORKDIR /root/
+
+# Copy the binary from builder stage
+COPY --from=backend-builder /app/bitor .
+
+# Create necessary directories
+RUN mkdir -p pb_data ansible nuclei-templates
+
+# Expose port
+EXPOSE 8090
+
+# Run the application
+CMD ["./bitor", "serve", "--http", "0.0.0.0:8090"] 
