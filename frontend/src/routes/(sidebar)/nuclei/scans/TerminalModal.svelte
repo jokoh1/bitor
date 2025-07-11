@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onDestroy, onMount } from 'svelte';
-    import { backendUrl } from '@lib/stores/pocketbase';
+    import { getBackendUrl } from '@lib/stores/pocketbase';
     import '@xterm/xterm/css/xterm.css';
 
     export let open: boolean;
@@ -288,7 +288,7 @@
 
         try {
             const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const cleanBackendUrl = backendUrl.replace(/^https?:\/\//, '').replace(/\/$/, '');
+            const cleanBackendUrl = getBackendUrl().replace(/^https?:\/\//, '').replace(/\/$/, '');
             const wsUrl = `${wsProtocol}//${cleanBackendUrl}/api/terminal?scanId=${scanId}`;
             socket = new WebSocket(wsUrl);
 

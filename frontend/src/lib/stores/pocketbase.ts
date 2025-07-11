@@ -3,11 +3,11 @@ import { writable } from "svelte/store";
 import { goto } from "$app/navigation";
 import type { Permission } from "$lib/types/permission";
 
-// set backend url based on environment
-export const backendUrl = import.meta.env.DEV ? "http://127.0.0.1:8090/" : "/";
+// Use environment variable for backend URL, fallback to localhost for development
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8090';
 
 // connect to backend
-const pb = new PocketBase(backendUrl);
+const pb = new PocketBase(BACKEND_URL);
 pb.autoCancellation(false);
 
 // Add response interceptor for auth-related errors
@@ -60,3 +60,6 @@ export const permission = writable({} as Permission);
 
 // Export the instance for direct usage
 export default pb;
+
+// Export the backend URL for use in other parts of the app
+export const getBackendUrl = () => BACKEND_URL;
