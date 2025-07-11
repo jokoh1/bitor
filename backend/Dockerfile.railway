@@ -44,8 +44,8 @@ COPY . .
 # Copy frontend build output to pb_public
 COPY --from=frontend-builder /app/build ./pb_public
 
-# Build the Go application
-RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo -o bitor main.go
+# Build the Go application (disable CGO for portability and to avoid gcc requirement)
+RUN CGO_ENABLED=0 GOOS=linux go build -a -o bitor main.go
 
 # Stage 3: Final runtime image
 FROM alpine:latest
