@@ -27,8 +27,8 @@ FROM golang:1.22-alpine AS backend-builder
 
 WORKDIR /app
 
-# Install build dependencies (add build-base for gcc, musl-dev, etc.)
-RUN apk add --no-cache git ca-certificates build-base
+# Install build dependencies (explicit gcc and musl-dev for CGO)
+RUN apk add --no-cache git ca-certificates gcc musl-dev
 
 # Force cache bust - $(date)
 
